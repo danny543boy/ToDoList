@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Http\Requests\deleteToDoRequest;
+use App\Http\Requests\getToDoRequest;
+use App\Http\Requests\newToDoRequest;
+use App\Http\Requests\updateToDoRequest;
+use App\Models\Events;
 
 class MainController extends Controller
 {
@@ -17,81 +20,62 @@ class MainController extends Controller
     const SUCCESSFUL = 'successful';
     const IS_ALL = 'isAll';
     const DATA = 'data';
+    const TIME = 'time';
 
-    public function runInsert(Request $request)
+    public function newToDo(newToDoRequest $request)
     {
-        if (empty($request->json()->all())) {
-            return response()->json([SELF::MESSAGE => SELF::JSON_ERROR], 400);
-        }
-
-        // $this->_checkJson($request);
-
         $title = $request->input(SELF::TITLE);
         $msg = $request->input(SELF::MSG);
+        $time = $request->input(SELF::TIME);
+        $result = Events::insert([SELF::TITLE => $title, SELF::MSG => $msg, SELF::TIME => $time]);
 
-        $result = DB::table(self::TABLE_NAME)->insert([SELF::TITLE => $title, SELF::MSG => $msg]);
-
-        return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], 200);
-    }
-
-    public function runUpdate(Request $request)
-    {
-        if (empty($request->json()->all())) {
-            return response()->json([SELF::MESSAGE => SELF::JSON_ERROR,], 400);
-        }
-
-        $id = $request->input(SELF::ID);
-        $data = $request->input(SELF::DATA);
-
-        if ($data) {
-            $result = DB::table(self::TABLE_NAME)->where(SELF::ID, $id)
-            ->update([
-                SELF::TITLE => $data[SELF::TITLE],
-                SELF::MSG => $data[SELF::MSG]
-            ]);
-        }
-
-        return response()->json([
-            SELF::MESSAGE => SELF::SUCCESSFUL,
-        ], 200);
-    }
-
-    public function runDelete(Request $request)
-    {
-        if (empty($request->json()->all())) {
-            return response()->json([SELF::MESSAGE => SELF::JSON_ERROR], 400);
-        }
-
-        $id = $request->input(SELF::ID);
-        $isAll = $request->input(SELF::IS_ALL);
-
-        if ($isAll) {
-            $result = DB::table(SELF::TABLE_NAME)->truncate();
+        if ($result == 1) {
+            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], 201);
         } else {
-            $result = DB::table(SELF::TABLE_NAME)->where(SELF::ID, $id)->delete();
-        }
-
-        if($result == 1){
-            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], 200);
-        }else{
             return response()->json([SELF::MESSAGE => SELF::DB_ERROR], 400);
         }
     }
 
-    public function runGet(Request $request)
+    public function updateToDo(updateToDoRequest $request)
     {
-        if (empty($request->json()->all())) {
-            return response()->json([SELF::MESSAGE => SELF::JSON_ERROR,], 400);
+        $id = $request->input(SELF::ID);
+        $result = Events::whereId($id)->update($request->all());
+
+        if ($result == 1) {
+            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], 201);
+        } else {
+            return response()->json([SELF::MESSAGE => SELF::DB_ERROR], 400);
+        }
+    }
+
+    public function deleteToDo(deleteToDoRequest $request)
+    {
+        $id = $request->input(SELF::ID);
+        $isAll = $request->input(SELF::IS_ALL);
+
+        if ($isAll) {
+            $result = Events::truncate();
+        } else {
+            $result = Events::whereId($id)->delete();
         }
 
+        if ($result == 1) {
+            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], 200);
+        } else {
+            return response()->json([SELF::MESSAGE => SELF::DB_ERROR], 400);
+        }
+    }
+
+    public function getToDo(getToDoRequest $request)
+    {
         $id = $request->input(SELF::ID);
         $isGetAll = $request->input(SELF::IS_ALL);
 
-        if($id){
-            $data = DB::table(self::TABLE_NAME)->where(SELF::ID,$id)->get();
-        }else if($isGetAll){
-            $data = DB::table(self::TABLE_NAME)->get();
-        }else{
+        if ($id) {
+            $data = Events::whereId($id)->get();
+        } else if ($isGetAll) {
+            $data = Events::all();
+        } else {
             $data = null;
         }
 

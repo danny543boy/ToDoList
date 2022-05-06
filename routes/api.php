@@ -19,11 +19,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::prefix('v1')->group(function(){
-    Route::get('',[MainController::class,'runGet']);
-    Route::post('',[MainController::class,'runUpdate']);
-    Route::delete('',[MainController::class,'runDelete']);
-    Route::put('',[MainController::class,'runInsert']);
+Route::prefix('v2')->group(function(){
+    Route::get('getToDo',[MainController::class,'getToDo']);
+    Route::post('updateToDo',[MainController::class,'updateToDo']);
+    Route::delete('deleteToDo',[MainController::class,'deleteToDo']);
+    Route::put('newToDo',[MainController::class,'newToDo']);
 });
 
 
