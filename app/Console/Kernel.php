@@ -16,15 +16,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
-        // $schedule->call(function () {
-        //     DB::table('recent_users')->delete();
-        // })->daily();
-
-        $schedule->call(function () {
-            error_log('成功排程');
-        })->everyMinute();
-
+        $schedule->command('command:CheckToDoTime')->everyMinute();
     }
 
     /**
