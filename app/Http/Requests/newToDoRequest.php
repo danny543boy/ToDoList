@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Event;
 use Illuminate\Foundation\Http\FormRequest;
 
 class newToDoRequest extends FormRequest
@@ -24,24 +25,24 @@ class newToDoRequest extends FormRequest
     public function rules()
     {
         return [
-            'title' => ['required', 'nullable', 'string'],
-            'msg' => ['sometimes', 'nullable', 'string'],
-            'time' => ['sometimes', 'nullable', 'date'],
+            'title' => ['required', 'string'],
+            'msg' => ['nullable', 'string'],
+            'time' => ['nullable', 'date'],
         ];
     }
 
-    /**
-     * 取得已定義驗證規則的錯誤訊息。
-     *
-     * @return array
-     */
-    public function messages()
+    public function getInsertArray()
     {
-        return [
-            'title.required' => '標題是必填的，',
-            'title.string' => '標題必須是string的',
-            'msg.string'  => '訊息必須是string',
-            'time' => '必須是date'
+        $title = $this->input(Event::TITLE);
+        $msg = $this->input(Event::MSG);
+        $time = $this->input(Event::TIME);
+
+        $result = [
+            Event::TITLE => $title,
+            Event::MSG => $msg,
+            Event::TIME => $time,
         ];
+
+        return $result;
     }
 }

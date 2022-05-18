@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\MainController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\MainController;
+
+const VERSION = 'v2';
+const ID = '/{id}';
 
 /*
 |--------------------------------------------------------------------------
@@ -13,20 +16,19 @@ use App\Http\Controllers\MainController;
 | routes are loaded by the RouteServiceProvider within a group which
 | is assigned the "api" middleware group. Enjoy building your API!
 |
-*/
+ */
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::prefix('v2')->group(function(){
-    Route::get('getToDo',[MainController::class,'getToDo']);
-    Route::post('updateToDo',[MainController::class,'updateToDo']);
-    Route::delete('deleteToDo',[MainController::class,'deleteToDo']);
-    Route::put('newToDo',[MainController::class,'newToDo']);
+Route::prefix(VERSION)->group(function () {
+    Route::prefix('/todos')->group(function () {
+        Route::get(ID, [MainController::class, 'getToDo']);
+        Route::get('', [MainController::class, 'getAllToDo']);
+        Route::post('', [MainController::class, 'newToDo']);
+        Route::put('', [MainController::class, 'updateToDo']);
+        Route::delete(ID, [MainController::class, 'deleteToDo']);
+        Route::delete('', [MainController::class, 'deleteAllToDo']);
+    });
 });
-
-
-
-
-

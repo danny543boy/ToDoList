@@ -2,94 +2,84 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\deleteToDoRequest;
-use App\Http\Requests\getToDoRequest;
 use App\Http\Requests\newToDoRequest;
 use App\Http\Requests\updateToDoRequest;
-use App\Models\Events;
+use App\Models\Event;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
-use Carbon\Carbon;
 
 class MainController extends Controller
 {
-    const ID = 'id';
-    const TITLE = 'title';
-    const MSG = 'msg';
     const MESSAGE = 'message';
-    const JSON_ERROR = 'The request is not a valid JSON';
-    const DB_ERROR = 'The DB error';
+    const UPDATE_ERROR = 'update todo fail';
+    const NEW_FAIL = 'new todo fail';
+    const DELETE_FAIL = 'delete todo fail';
     const SUCCESSFUL = 'successful';
-    const IS_ALL = 'isAll';
     const DATA = 'data';
-    const TIME = 'time';
 
     public function newToDo(newToDoRequest $request)
     {
-        $title = $request->input(SELF::TITLE);
-        $msg = $request->input(SELF::MSG);
-        $time = $request->input(SELF::TIME);
-        $result = Events::insert([SELF::TITLE => $title, SELF::MSG => $msg, SELF::TIME => $time]);
+        $result = Event::insert($request->getInsertArray());
 
-        if ($result == 1) {
-            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], SymfonyResponse::HTTP_CREATED);
-        } else {
-            return response()->json([SELF::MESSAGE => SELF::DB_ERROR], SymfonyResponse::HTTP_BAD_REQUEST);
+        if (!$result) {
+            return response()->json([self::MESSAGE => self::NEW_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
+
+        return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
     public function updateToDo(updateToDoRequest $request)
     {
-        $id = $request->input(SELF::ID);
-        $result = Events::whereId($id)->update($request->all());
+        $id = $request->input(Event::ID);
+        $data = Event::findOrFail($id);
+        $result = $data->update($request->getUpdateArray());
 
-        if ($result == 1) {
-            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], SymfonyResponse::HTTP_CREATED);
-        } else {
-            return response()->json([SELF::MESSAGE => SELF::DB_ERROR], 400);
+        if (!$result) {
+            return response()->json([self::MESSAGE => self::UPDATE_ERROR], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
+
+        return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function deleteToDo(deleteToDoRequest $request)
+    public function deleteToDo(int $id)
     {
-        $id = $request->input(SELF::ID);
-        $isAll = $request->input(SELF::IS_ALL);
+        $data = Event::findOrFail($id);
+        $result = $data->delete();
 
-        if ($isAll) {
-            $result = Events::truncate();
-        } else {
-            $result = Events::whereId($id)->delete();
+        if (!$result) {
+            return response()->json([self::MESSAGE => self::DELETE_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        if ($result == 1) {
-            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], SymfonyResponse::HTTP_OK);
-        } else {
-            return response()->json([SELF::MESSAGE => SELF::DB_ERROR], SymfonyResponse::HTTP_BAD_REQUEST);
-        }
+        return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function getToDo(getToDoRequest $request)
+    public function deleteAllToDo()
     {
-        $id = $request->input(SELF::ID);
-        $isGetAll = $request->input(SELF::IS_ALL);
+        // TODO:目前還沒有User表，先加入此api，將來加入User後修正
+        $result = Event::truncate();
 
-        if ($id) {
-            $data = Events::whereId($id)->get();
-        } else if ($isGetAll) {
-            $data = Events::all();
-        } else {
-            $data = null;
+        if (!$result) {
+            return response()->json([self::MESSAGE => self::DELETE_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        if ($data) {
-            return response()->json([
-                SELF::MESSAGE => SELF::SUCCESSFUL,
-                SELF::DATA => $data
-            ]);
-        } else {
-            // db error
-            return response()->json([
-                SELF::MESSAGE => SELF::DB_ERROR,
-            ], SymfonyResponse::HTTP_BAD_REQUEST);
-        }
+        return response()->json([self::MESSAGE => self::SUCCESSFUL]);
+    }
+
+    public function getToDo(int $id)
+    {
+        $data = Event::findOrFail($id);
+
+        return response()->json([
+            self::MESSAGE => self::SUCCESSFUL,
+            self::DATA => $data,
+        ]);
+    }
+
+    public function getAllToDo()
+    {
+        $data = Event::all();
+
+        return response()->json([
+            self::MESSAGE => self::SUCCESSFUL,
+            self::DATA => $data,
+        ]);
     }
 }
