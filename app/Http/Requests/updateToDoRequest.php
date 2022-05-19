@@ -26,9 +26,9 @@ class updateToDoRequest extends FormRequest
     public function rules()
     {
         return [
-            'title' => ['sometimes', 'nullable', 'string'],
-            'msg' => ['sometimes', 'nullable', 'string'],
-            'time' => ['sometimes', 'nullable', 'date'],
+            'title' => ['nullable', 'string'],
+            'msg' => ['nullable', 'string'],
+            'time' => ['nullable', 'date'],
         ];
     }
 
@@ -43,16 +43,16 @@ class updateToDoRequest extends FormRequest
         return [
             'title.string' => '標題必須是string的',
             'msg.string' => '訊息必須是string',
-            'time' => '必須是date',
+            'time.date' => '必須是date',
         ];
     }
 
     public function getUpdateArray()
     {
         $updateArray = [];
-        $title = $this->input(Event::TITLE);
-        $msg = $this->input(Event::MSG);
-        $time = $this->input(Event::TIME);
+        $title = $this->validated()[Event::TITLE];
+        $msg = $this->validated()[Event::MSG];
+        $time = $this->validated()[Event::TIME];
 
         if (!is_null($title)) {
             $updateArray[Event::TITLE] = $title;

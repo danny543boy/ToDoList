@@ -33,9 +33,9 @@ class newToDoRequest extends FormRequest
 
     public function getInsertArray()
     {
-        $title = $this->input(Event::TITLE);
-        $msg = $this->input(Event::MSG);
-        $time = $this->input(Event::TIME);
+        $title = $this->validated()[Event::TITLE];
+        $msg = $this->validated()[Event::MSG];
+        $time = $this->validated()[Event::TIME];
 
         $result = [
             Event::TITLE => $title,
