@@ -26,7 +26,6 @@ class updateToDoRequest extends FormRequest
     public function rules()
     {
         return [
-            "id" => ['required', 'integer'],
             'title' => ['sometimes', 'nullable', 'string'],
             'msg' => ['sometimes', 'nullable', 'string'],
             'time' => ['sometimes', 'nullable', 'date'],
@@ -42,8 +41,6 @@ class updateToDoRequest extends FormRequest
     {
         // $this->setValue($this);
         return [
-            'id.required' => 'id是必填的',
-            'id.integer' => 'id是整數的',
             'title.string' => '標題必須是string的',
             'msg.string' => '訊息必須是string',
             'time' => '必須是date',

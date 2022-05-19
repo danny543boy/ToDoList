@@ -5,7 +5,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 const VERSION = 'v2';
-const ID = '/{id}';
 
 /*
 |--------------------------------------------------------------------------
@@ -24,11 +23,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::prefix(VERSION)->group(function () {
     Route::prefix('/todos')->group(function () {
-        Route::get(ID, [MainController::class, 'getToDo']);
+        Route::get('/{id}', [MainController::class, 'getToDo']);
         Route::get('', [MainController::class, 'getAllToDo']);
         Route::post('', [MainController::class, 'newToDo']);
-        Route::put('', [MainController::class, 'updateToDo']);
-        Route::delete(ID, [MainController::class, 'deleteToDo']);
+        Route::put('/{id}', [MainController::class, 'updateToDo']);
+        Route::delete('/{id}', [MainController::class, 'deleteToDo']);
         Route::delete('', [MainController::class, 'deleteAllToDo']);
     });
 });

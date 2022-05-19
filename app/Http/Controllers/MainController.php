@@ -27,9 +27,8 @@ class MainController extends Controller
         return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function updateToDo(updateToDoRequest $request)
+    public function updateToDo(updateToDoRequest $request, int $id)
     {
-        $id = $request->input(Event::ID);
         $data = Event::findOrFail($id);
         $result = $data->update($request->getUpdateArray());
 
