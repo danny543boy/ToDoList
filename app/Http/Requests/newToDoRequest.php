@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Event;
 use Illuminate\Foundation\Http\FormRequest;
 
 class newToDoRequest extends FormRequest
@@ -31,18 +30,4 @@ class newToDoRequest extends FormRequest
         ];
     }
 
-    public function getInsertArray()
-    {
-        $title = $this->validated()[Event::TITLE];
-        $msg = $this->validated()[Event::MSG];
-        $time = $this->validated()[Event::TIME];
-
-        $result = [
-            Event::TITLE => $title,
-            Event::MSG => $msg,
-            Event::TIME => $time,
-        ];
-
-        return $result;
-    }
 }

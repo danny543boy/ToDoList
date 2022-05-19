@@ -18,7 +18,7 @@ class MainController extends Controller
 
     public function newToDo(newToDoRequest $request)
     {
-        $result = Event::insert($request->getInsertArray());
+        $result = Event::insert($this->getInsertArray($request));
 
         if (!$result) {
             return response()->json([self::MESSAGE => self::NEW_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -30,7 +30,7 @@ class MainController extends Controller
     public function updateToDo(updateToDoRequest $request, int $id)
     {
         $data = Event::findOrFail($id);
-        $result = $data->update($request->getUpdateArray());
+        $result = $data->update($this->getUpdateArray($request));
 
         if (!$result) {
             return response()->json([self::MESSAGE => self::UPDATE_ERROR], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -80,5 +80,40 @@ class MainController extends Controller
             self::MESSAGE => self::SUCCESSFUL,
             self::DATA => $data,
         ]);
+    }
+
+    public function getInsertArray(newToDoRequest $request)
+    {
+        $title = $request->validated(Event::TITLE);
+        $msg = $request->validated(Event::MSG);
+        $time = $request->validated(Event::TIME);
+
+        $result = [
+            Event::TITLE => $title,
+            Event::MSG => $msg,
+            Event::TIME => $time,
+        ];
+
+        return $result;
+    }
+
+    public function getUpdateArray(updateToDoRequest $request)
+    {
+        $updateArray = [];
+        $title = $request->validated(Event::TITLE, -1);
+        $msg = $request->validated(Event::MSG, -1);
+        $time = $request->validated(Event::TIME, -1);
+
+        if ($title != -1) {
+            $updateArray[Event::TITLE] = $title;
+        }
+        if ($msg != -1) {
+            $updateArray[Event::MSG] = $msg;
+        }
+        if ($time != -1) {
+            $updateArray[Event::TIME] = $time;
+        }
+
+        return $updateArray;
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Event;
 use Illuminate\Foundation\Http\FormRequest;
 
 class updateToDoRequest extends FormRequest
@@ -26,7 +25,7 @@ class updateToDoRequest extends FormRequest
     public function rules()
     {
         return [
-            'title' => ['nullable', 'string'],
+            'title' => ['string'],
             'msg' => ['nullable', 'string'],
             'time' => ['nullable', 'date'],
         ];
@@ -43,27 +42,8 @@ class updateToDoRequest extends FormRequest
         return [
             'title.string' => '標題必須是string的',
             'msg.string' => '訊息必須是string',
-            'time.date' => '必須是date',
+            'time.date' => 'time必須是date',
         ];
     }
 
-    public function getUpdateArray()
-    {
-        $updateArray = [];
-        $title = $this->validated()[Event::TITLE];
-        $msg = $this->validated()[Event::MSG];
-        $time = $this->validated()[Event::TIME];
-
-        if (!is_null($title)) {
-            $updateArray[Event::TITLE] = $title;
-        }
-        if (!is_null($msg)) {
-            $updateArray[Event::MSG] = $msg;
-        }
-        if (!is_null($time)) {
-            $updateArray[Event::TIME] = $time;
-        }
-
-        return $updateArray;
-    }
 }
