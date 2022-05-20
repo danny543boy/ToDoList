@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\newToDoRequest;
 use App\Http\Requests\updateToDoRequest;
 use App\Models\Event;
+use App\Models\User;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class MainController extends Controller
@@ -16,9 +17,10 @@ class MainController extends Controller
     const SUCCESSFUL = 'successful';
     const DATA = 'data';
 
-    public function newToDo(newToDoRequest $request)
+    public function newToDo(newToDoRequest $request, int $userId)
     {
-        $result = Event::insert($this->getInsertArray($request));
+        User::findOrFail($userId);
+        $result = Event::insert($this->getInsertArray($request, $userId));
 
         if (!$result) {
             return response()->json([self::MESSAGE => self::NEW_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -27,9 +29,11 @@ class MainController extends Controller
         return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function updateToDo(updateToDoRequest $request, int $id)
+    public function updateToDo(updateToDoRequest $request, int $userId, int $id)
     {
-        $data = Event::findOrFail($id);
+        $data = User::findOrFail($userId)
+            ->todos()
+            ->findOrFail($id);
         $result = $data->update($this->getUpdateArray($request));
 
         if (!$result) {
@@ -39,9 +43,11 @@ class MainController extends Controller
         return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function deleteToDo(int $id)
+    public function deleteToDo(int $userId, int $id)
     {
-        $data = Event::findOrFail($id);
+        $data = User::findOrFail($userId)
+            ->todos()
+            ->findOrFail($id);
         $result = $data->delete();
 
         if (!$result) {
@@ -50,10 +56,11 @@ class MainController extends Controller
         return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function deleteAllToDo()
+    public function deleteAllToDo(int $userId)
     {
-        // TODO:目前還沒有User表，先加入此api，將來加入User後修正
-        $result = Event::truncate();
+        $result = User::findOrFail($userId)
+            ->todos()
+            ->truncate();
 
         if (!$result) {
             return response()->json([self::MESSAGE => self::DELETE_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -62,9 +69,11 @@ class MainController extends Controller
         return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function getToDo(int $id)
+    public function getToDo(int $userId, int $id)
     {
-        $data = Event::findOrFail($id);
+        $data = User::findOrFail($userId)
+            ->todos()
+            ->findOrFail($id);
 
         return response()->json([
             self::MESSAGE => self::SUCCESSFUL,
@@ -72,9 +81,9 @@ class MainController extends Controller
         ]);
     }
 
-    public function getAllToDo()
+    public function getAllToDo(int $userId)
     {
-        $data = Event::all();
+        $data = User::findOrFail($userId)->todos;
 
         return response()->json([
             self::MESSAGE => self::SUCCESSFUL,
@@ -82,7 +91,28 @@ class MainController extends Controller
         ]);
     }
 
-    public function getInsertArray(newToDoRequest $request)
+    // public function register(Request $request)
+    // {
+    //     $request->validate([
+    //         'name' => ['required', 'string', 'max:255'],
+    //         'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+    //         'password' => ['required', 'confirmed'],
+    //     ]);
+
+    //     $user = User::create([
+    //         'name' => $request->name,
+    //         'email' => $request->email,
+    //         'password' => Hash::make($request->password),
+    //     ]);
+
+    //     event(new Registered($user));
+
+    //     Auth::login($user);
+
+    //     return response()->noContent();
+    // }
+
+    public function getInsertArray(newToDoRequest $request, int $userId)
     {
         $title = $request->validated(Event::TITLE);
         $msg = $request->validated(Event::MSG);
@@ -92,6 +122,7 @@ class MainController extends Controller
             Event::TITLE => $title,
             Event::MSG => $msg,
             Event::TIME => $time,
+            Event::USER_ID => $userId,
         ];
 
         return $result;
