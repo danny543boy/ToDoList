@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\newToDoRequest;
 use App\Http\Requests\updateToDoRequest;
 use App\Models\Event;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class MainController extends Controller
@@ -18,7 +23,8 @@ class MainController extends Controller
 
     public function newToDo(newToDoRequest $request)
     {
-        $result = Event::insert($this->getInsertArray($request));
+        $userId = Auth::user()->id;
+        $result = Event::insert($this->getInsertArray($request, $userId));
 
         if (!$result) {
             return response()->json([self::MESSAGE => self::NEW_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -29,7 +35,10 @@ class MainController extends Controller
 
     public function updateToDo(updateToDoRequest $request, int $id)
     {
-        $data = Event::findOrFail($id);
+        $userId = Auth::user()->id;
+        $data = User::findOrFail($userId)
+            ->todos()
+            ->findOrFail($id);
         $result = $data->update($this->getUpdateArray($request));
 
         if (!$result) {
@@ -41,7 +50,10 @@ class MainController extends Controller
 
     public function deleteToDo(int $id)
     {
-        $data = Event::findOrFail($id);
+        $userId = Auth::user()->id;
+        $data = User::findOrFail($userId)
+            ->todos()
+            ->findOrFail($id);
         $result = $data->delete();
 
         if (!$result) {
@@ -52,8 +64,10 @@ class MainController extends Controller
 
     public function deleteAllToDo()
     {
-        // TODO:目前還沒有User表，先加入此api，將來加入User後修正
-        $result = Event::truncate();
+        $userId = Auth::user()->id;
+        $result = User::findOrFail($userId)
+            ->todos()
+            ->truncate();
 
         if (!$result) {
             return response()->json([self::MESSAGE => self::DELETE_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -64,7 +78,10 @@ class MainController extends Controller
 
     public function getToDo(int $id)
     {
-        $data = Event::findOrFail($id);
+        $userId = Auth::user()->id;
+        $data = User::findOrFail($userId)
+            ->todos()
+            ->findOrFail($id);
 
         return response()->json([
             self::MESSAGE => self::SUCCESSFUL,
@@ -74,7 +91,7 @@ class MainController extends Controller
 
     public function getAllToDo()
     {
-        $data = Event::all();
+        $data = Auth::user()->todos;
 
         return response()->json([
             self::MESSAGE => self::SUCCESSFUL,
@@ -82,7 +99,44 @@ class MainController extends Controller
         ]);
     }
 
-    public function getInsertArray(newToDoRequest $request)
+    /**
+     * 登入
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function authenticate(LoginRequest $request)
+    {
+        $request->authenticate();
+        $request->session()->regenerate();
+
+        $email = $request->validated('email');
+        $user = User::where('email', $email)->firstOrFail();
+        $token = $user->createToken('token-name')->plainTextToken;
+
+        return response()->json([
+            "MESSAGE" => "登入成功",
+            "token" => $token,
+        ]);
+    }
+
+    /**
+     * 登出
+     */
+    public function logout(Request $request)
+    {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        Auth::user()->tokens()->delete();
+
+        return response()->json([
+            "MESSAGE" => "已登出",
+        ], SymfonyResponse::HTTP_OK);
+    }
+
+    public function getInsertArray(newToDoRequest $request, int $userId)
     {
         $title = $request->validated(Event::TITLE);
         $msg = $request->validated(Event::MSG);
@@ -92,6 +146,7 @@ class MainController extends Controller
             Event::TITLE => $title,
             Event::MSG => $msg,
             Event::TIME => $time,
+            Event::USER_ID => $userId,
         ];
 
         return $result;
