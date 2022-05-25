@@ -24,8 +24,7 @@ class getToDoRequest extends FormRequest
     public function rules()
     {
         return [
-            "id" => ['nullable', "integer"],
-            "isAll" => ['sometimes', "boolean"]
+            "id" => ["integer"],
         ];
     }
 
@@ -38,7 +37,9 @@ class getToDoRequest extends FormRequest
     {
         return [
             'id.integer' => 'id需是整數',
-            'isAll.boolean' => 'isAll必須是boolean的'
         ];
     }
+
+    //'id.required' => '你沒填id',
+
 }
