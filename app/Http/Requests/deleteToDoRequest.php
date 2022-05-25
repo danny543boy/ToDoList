@@ -24,8 +24,7 @@ class deleteToDoRequest extends FormRequest
     public function rules()
     {
         return [
-            "isAll" => ['sometimes', 'bail', 'boolean'],
-            "id" => ['required', 'nullable', 'integer']
+            "id" => ['integer'],
         ];
     }
 
@@ -37,9 +36,7 @@ class deleteToDoRequest extends FormRequest
     public function messages()
     {
         return [
-            'id.required' => 'id是必填的',
             'id.integer' => 'id需是整數',
-            'isAll.boolean' => 'isAll必須是boolean的'
         ];
     }
 }

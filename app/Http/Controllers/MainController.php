@@ -2,94 +2,173 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\deleteToDoRequest;
-use App\Http\Requests\getToDoRequest;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\newToDoRequest;
 use App\Http\Requests\updateToDoRequest;
-use App\Models\Events;
+use App\Models\Event;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
-use Carbon\Carbon;
 
 class MainController extends Controller
 {
-    const ID = 'id';
-    const TITLE = 'title';
-    const MSG = 'msg';
     const MESSAGE = 'message';
-    const JSON_ERROR = 'The request is not a valid JSON';
-    const DB_ERROR = 'The DB error';
+    const UPDATE_ERROR = 'update todo fail';
+    const NEW_FAIL = 'new todo fail';
+    const DELETE_FAIL = 'delete todo fail';
     const SUCCESSFUL = 'successful';
-    const IS_ALL = 'isAll';
     const DATA = 'data';
-    const TIME = 'time';
 
     public function newToDo(newToDoRequest $request)
     {
-        $title = $request->input(SELF::TITLE);
-        $msg = $request->input(SELF::MSG);
-        $time = $request->input(SELF::TIME);
-        $result = Events::insert([SELF::TITLE => $title, SELF::MSG => $msg, SELF::TIME => $time]);
+        $userId = Auth::user()->id;
+        $result = Event::insert($this->getInsertArray($request, $userId));
 
-        if ($result == 1) {
-            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], SymfonyResponse::HTTP_CREATED);
-        } else {
-            return response()->json([SELF::MESSAGE => SELF::DB_ERROR], SymfonyResponse::HTTP_BAD_REQUEST);
+        if (!$result) {
+            return response()->json([self::MESSAGE => self::NEW_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
+
+        return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function updateToDo(updateToDoRequest $request)
+    public function updateToDo(updateToDoRequest $request, int $id)
     {
-        $id = $request->input(SELF::ID);
-        $result = Events::whereId($id)->update($request->all());
+        $userId = Auth::user()->id;
+        $data = User::findOrFail($userId)
+            ->todos()
+            ->findOrFail($id);
+        $result = $data->update($this->getUpdateArray($request));
 
-        if ($result == 1) {
-            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], SymfonyResponse::HTTP_CREATED);
-        } else {
-            return response()->json([SELF::MESSAGE => SELF::DB_ERROR], 400);
+        if (!$result) {
+            return response()->json([self::MESSAGE => self::UPDATE_ERROR], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
+
+        return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function deleteToDo(deleteToDoRequest $request)
+    public function deleteToDo(int $id)
     {
-        $id = $request->input(SELF::ID);
-        $isAll = $request->input(SELF::IS_ALL);
+        $userId = Auth::user()->id;
+        $data = User::findOrFail($userId)
+            ->todos()
+            ->findOrFail($id);
+        $result = $data->delete();
 
-        if ($isAll) {
-            $result = Events::truncate();
-        } else {
-            $result = Events::whereId($id)->delete();
+        if (!$result) {
+            return response()->json([self::MESSAGE => self::DELETE_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        if ($result == 1) {
-            return response()->json([SELF::MESSAGE => SELF::SUCCESSFUL], SymfonyResponse::HTTP_OK);
-        } else {
-            return response()->json([SELF::MESSAGE => SELF::DB_ERROR], SymfonyResponse::HTTP_BAD_REQUEST);
-        }
+        return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function getToDo(getToDoRequest $request)
+    public function deleteAllToDo()
     {
-        $id = $request->input(SELF::ID);
-        $isGetAll = $request->input(SELF::IS_ALL);
+        $userId = Auth::user()->id;
+        $result = User::findOrFail($userId)
+            ->todos()
+            ->truncate();
 
-        if ($id) {
-            $data = Events::whereId($id)->get();
-        } else if ($isGetAll) {
-            $data = Events::all();
-        } else {
-            $data = null;
+        if (!$result) {
+            return response()->json([self::MESSAGE => self::DELETE_FAIL], SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        if ($data) {
-            return response()->json([
-                SELF::MESSAGE => SELF::SUCCESSFUL,
-                SELF::DATA => $data
-            ]);
-        } else {
-            // db error
-            return response()->json([
-                SELF::MESSAGE => SELF::DB_ERROR,
-            ], SymfonyResponse::HTTP_BAD_REQUEST);
+        return response()->json([self::MESSAGE => self::SUCCESSFUL]);
+    }
+
+    public function getToDo(int $id)
+    {
+        $userId = Auth::user()->id;
+        $data = User::findOrFail($userId)
+            ->todos()
+            ->findOrFail($id);
+
+        return response()->json([
+            self::MESSAGE => self::SUCCESSFUL,
+            self::DATA => $data,
+        ]);
+    }
+
+    public function getAllToDo()
+    {
+        $data = Auth::user()->todos;
+
+        return response()->json([
+            self::MESSAGE => self::SUCCESSFUL,
+            self::DATA => $data,
+        ]);
+    }
+
+    /**
+     * 登入
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function authenticate(LoginRequest $request)
+    {
+        $request->authenticate();
+        $request->session()->regenerate();
+
+        $email = $request->validated('email');
+        $user = User::where('email', $email)->firstOrFail();
+        $token = $user->createToken('token-name')->plainTextToken;
+
+        return response()->json([
+            "MESSAGE" => "登入成功",
+            "token" => $token,
+        ]);
+    }
+
+    /**
+     * 登出
+     */
+    public function logout(Request $request)
+    {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        Auth::user()->tokens()->delete();
+
+        return response()->json([
+            "MESSAGE" => "已登出",
+        ], SymfonyResponse::HTTP_OK);
+    }
+
+    public function getInsertArray(newToDoRequest $request, int $userId)
+    {
+        $title = $request->validated(Event::TITLE);
+        $msg = $request->validated(Event::MSG);
+        $time = $request->validated(Event::TIME);
+
+        $result = [
+            Event::TITLE => $title,
+            Event::MSG => $msg,
+            Event::TIME => $time,
+            Event::USER_ID => $userId,
+        ];
+
+        return $result;
+    }
+
+    public function getUpdateArray(updateToDoRequest $request)
+    {
+        $updateArray = [];
+        $title = $request->validated(Event::TITLE, -1);
+        $msg = $request->validated(Event::MSG, -1);
+        $time = $request->validated(Event::TIME, -1);
+
+        if ($title != -1) {
+            $updateArray[Event::TITLE] = $title;
         }
+        if ($msg != -1) {
+            $updateArray[Event::MSG] = $msg;
+        }
+        if ($time != -1) {
+            $updateArray[Event::TIME] = $time;
+        }
+
+        return $updateArray;
     }
 }
