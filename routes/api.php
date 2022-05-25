@@ -22,18 +22,16 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::prefix(VERSION)->group(function () {
-    Route::prefix('/todos')->group(function () {
-        Route::get('/{userId}/{id}', [MainController::class, 'getToDo']);
-        Route::get('/{userId}', [MainController::class, 'getAllToDo']);
-        Route::post('/{userId}', [MainController::class, 'newToDo']);
-        Route::put('/{userId}/{id}', [MainController::class, 'updateToDo']);
-        Route::delete('/{userId}/{id}', [MainController::class, 'deleteToDo']);
-        Route::delete('/{userId}', [MainController::class, 'deleteAllToDo']);
-    });
 
-    // Route::prefix('/users')->group(function () {
-    //     Route::post('/register', [MainController::class, 'newToDo']);
-    //     Route::post('/login', [MainController::class, 'newToDo']);
-    //     Route::post('/logout', [MainController::class, 'newToDo']);
-    // });
+    Route::group([
+        'prefix' => '/todos',
+        'middleware' => 'auth:sanctum',
+    ], function () {
+        Route::get('/{id}', [MainController::class, 'getToDo']);
+        Route::get('', [MainController::class, 'getAllToDo']);
+        Route::post('', [MainController::class, 'newToDo']);
+        Route::put('/{id}', [MainController::class, 'updateToDo']);
+        Route::delete('/{id}', [MainController::class, 'deleteToDo']);
+        Route::delete('', [MainController::class, 'deleteAllToDo']);
+    });
 });

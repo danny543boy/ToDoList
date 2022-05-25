@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\newToDoRequest;
 use App\Http\Requests\updateToDoRequest;
 use App\Models\Event;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class MainController extends Controller
@@ -17,9 +21,9 @@ class MainController extends Controller
     const SUCCESSFUL = 'successful';
     const DATA = 'data';
 
-    public function newToDo(newToDoRequest $request, int $userId)
+    public function newToDo(newToDoRequest $request)
     {
-        User::findOrFail($userId);
+        $userId = Auth::user()->id;
         $result = Event::insert($this->getInsertArray($request, $userId));
 
         if (!$result) {
@@ -29,8 +33,9 @@ class MainController extends Controller
         return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function updateToDo(updateToDoRequest $request, int $userId, int $id)
+    public function updateToDo(updateToDoRequest $request, int $id)
     {
+        $userId = Auth::user()->id;
         $data = User::findOrFail($userId)
             ->todos()
             ->findOrFail($id);
@@ -43,8 +48,9 @@ class MainController extends Controller
         return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function deleteToDo(int $userId, int $id)
+    public function deleteToDo(int $id)
     {
+        $userId = Auth::user()->id;
         $data = User::findOrFail($userId)
             ->todos()
             ->findOrFail($id);
@@ -56,8 +62,9 @@ class MainController extends Controller
         return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function deleteAllToDo(int $userId)
+    public function deleteAllToDo()
     {
+        $userId = Auth::user()->id;
         $result = User::findOrFail($userId)
             ->todos()
             ->truncate();
@@ -69,8 +76,9 @@ class MainController extends Controller
         return response()->json([self::MESSAGE => self::SUCCESSFUL]);
     }
 
-    public function getToDo(int $userId, int $id)
+    public function getToDo(int $id)
     {
+        $userId = Auth::user()->id;
         $data = User::findOrFail($userId)
             ->todos()
             ->findOrFail($id);
@@ -81,9 +89,9 @@ class MainController extends Controller
         ]);
     }
 
-    public function getAllToDo(int $userId)
+    public function getAllToDo()
     {
-        $data = User::findOrFail($userId)->todos;
+        $data = Auth::user()->todos;
 
         return response()->json([
             self::MESSAGE => self::SUCCESSFUL,
@@ -91,26 +99,42 @@ class MainController extends Controller
         ]);
     }
 
-    // public function register(Request $request)
-    // {
-    //     $request->validate([
-    //         'name' => ['required', 'string', 'max:255'],
-    //         'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-    //         'password' => ['required', 'confirmed'],
-    //     ]);
+    /**
+     * 登入
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function authenticate(LoginRequest $request)
+    {
+        $request->authenticate();
+        $request->session()->regenerate();
 
-    //     $user = User::create([
-    //         'name' => $request->name,
-    //         'email' => $request->email,
-    //         'password' => Hash::make($request->password),
-    //     ]);
+        $email = $request->validated('email');
+        $user = User::where('email', $email)->firstOrFail();
+        $token = $user->createToken('token-name')->plainTextToken;
 
-    //     event(new Registered($user));
+        return response()->json([
+            "MESSAGE" => "登入成功",
+            "token" => $token,
+        ]);
+    }
 
-    //     Auth::login($user);
+    /**
+     * 登出
+     */
+    public function logout(Request $request)
+    {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-    //     return response()->noContent();
-    // }
+        Auth::user()->tokens()->delete();
+
+        return response()->json([
+            "MESSAGE" => "已登出",
+        ], SymfonyResponse::HTTP_OK);
+    }
 
     public function getInsertArray(newToDoRequest $request, int $userId)
     {
